@@ -1,6 +1,7 @@
 # CivicPulse AI (PS-10)
 ## Smart City Grievance & Civic Issue Resolution System
 
+[![GitHub Repo](https://img.shields.io/badge/GitHub-Repository-blue?logo=github)](https://github.com/dollymangwani777/AAI-Mini-Project)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.111.0-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-19-61DAFB.svg?logo=react&logoColor=black)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
@@ -8,7 +9,7 @@
 [![SQLite](https://img.shields.io/badge/SQLite-SQLAlchemy-003B57.svg?logo=sqlite&logoColor=white)](https://www.sqlalchemy.org)
 [![APScheduler](https://img.shields.io/badge/APScheduler-60s%20Autonomous-FF6F00.svg)](https://apscheduler.readthedocs.io)
 
-An end-to-end, production-ready municipal governance platform featuring an autonomous **Multi-Agent Ingestion Pipeline**, **100m Proximity Duplicate Clustering**, an **Autonomous Escalation Engine (APScheduler)**, and an interactive **Control Center Operations Dashboard**.
+An end-to-end, production-ready municipal governance platform featuring an autonomous **Multi-Agent Ingestion Pipeline**, **100m Proximity Duplicate Clustering**, an **Autonomous Escalation Engine (APScheduler)**, and an interactive **Control Center Operations Dashboard** with **Light & Dark Mode** support.
 
 ---
 
@@ -21,7 +22,7 @@ aai-miniproject/
 │   │   ├── agents/
 │   │   │   ├── __init__.py
 │   │   │   ├── understanding_agent.py   # Agent 1: LLM text & risk extraction
-│   │   │   ├── location_agent.py        # Agent 2: Ward geofence & GPS binding
+│   │   │   ├── location_agent.py        # Agent 2: Ward geofence & GPS binding (distributed fallback)
 │   │   │   ├── clustering_agent.py      # Agent 3: 100m Haversine duplicate clustering
 │   │   │   ├── severity_agent.py        # Agent 4: Dynamic 0-100 severity scoring
 │   │   │   ├── routing_agent.py         # Agent 5: Municipal department dispatch
@@ -49,21 +50,21 @@ aai-miniproject/
 │   │   │   ├── citizen/
 │   │   │   │   ├── ComplaintForm.tsx    # Citizen form with GPS & prompt chips
 │   │   │   │   ├── SubmissionStepper.tsx# Live 6-agent visual execution stepper
-│   │   │   │   └── TrackingModal.tsx    # Live SLA ticker, stepper, audit logs
+│   │   │   │   └── TrackingModal.tsx    # SLA ticker, stepper, audit logs & recent submissions
 │   │   │   ├── dashboard/
 │   │   │   │   ├── KpiBar.tsx           # KPI metrics (Active, Breaches, Speed, Index)
-│   │   │   │   ├── CityMap.tsx          # React-Leaflet map with color pins & heatmap
+│   │   │   │   ├── CityMap.tsx          # React-Leaflet map with light/dark tiles & heatmap
 │   │   │   │   ├── IncidentTable.tsx    # Queue table with filters & live SLA ticker
 │   │   │   │   ├── ResolutionModal.tsx  # Field inspector resolution trigger
 │   │   │   │   └── GovernanceCharts.tsx # Recharts department speed & ward leaderboard
-│   │   │   └── Navbar.tsx               # Header, live heartbeat, tab switcher
+│   │   │   └── Navbar.tsx               # Header, theme toggle, tab switcher
 │   │   ├── services/
 │   │   │   └── api.ts                   # Axios client with proxy routing
 │   │   ├── types/
 │   │   │   └── index.ts                 # TypeScript interfaces
-│   │   ├── App.tsx                      # Root component & state synchronization
+│   │   ├── App.tsx                      # Root component, state sync & localStorage history
 │   │   ├── main.tsx                     # Entrypoint
-│   │   └── index.css                    # Tailwind styles & Leaflet dark theme
+│   │   └── index.css                    # Tailwind styles & CartoDB map themes
 │   ├── index.html                       # HTML5 template with Inter/Outfit typography
 │   ├── package.json                     # Frontend dependencies & scripts
 │   ├── tailwind.config.js               # Tailwind CSS tokens & palettes
@@ -80,16 +81,17 @@ aai-miniproject/
 ### 1. Multi-Agent Ingestion Pipeline (FastAPI Engine)
 When a citizen submits a grievance via the portal or API, the request executes through 6 sequential autonomous agents:
 1. **Agent 1: Complaint Understanding Agent (LLM + Structured Output):**
-   - Extracts semantic `issue_type` (e.g., `open_manhole`, `pothole`, `garbage_overflow`, `water_leak`, `street_light_defect`, `fallen_tree`, `drainage_overflow`).
+   - Extracts semantic `issue_type` (`open_manhole`, `pothole`, `garbage_overflow`, `water_leak`, `street_light_defect`, `fallen_tree`, `drainage_overflow`).
    - Identifies danger risks (`traffic_safety`, `pedestrian_hazard`, `electrical_hazard`, `public_health`, `vulnerable_population_impact`).
    - Assesses `urgency_hint` (`low`, `medium`, `high`) and synthesizes a concise formal incident title.
    - Powered by LangChain Structured Outputs (OpenAI, Groq, or Anthropic) with a resilient rule-based semantic parser fallback for offline or zero-key environments.
 2. **Agent 2: Location Intelligence Agent:**
    - Normalizes informal location strings (e.g. *"Near Sector 14 market"*, *"Civil Lines Hospital Gate"*) into verified City Ward identifiers (`Ward-01` through `Ward-10`) with geospatial coordinates.
    - Automatically binds raw citizen GPS coordinates to municipal ward boundaries.
+   - Utilizes deterministic city-wide hash-offset fallback for unrecognized locations, preventing separate tickets from collapsing into false 0-meter duplicate collisions.
 3. **Agent 3: Duplicate & Incident Clustering Node:**
    - Evaluates active (unresolved) complaints using the **Haversine formula** within a **100-meter radius**.
-   - If an active match with the same semantic issue type exists: **does NOT create an isolated ticket**.
+   - If an active match with the same semantic issue type exists: **does NOT create a redundant ticket**.
    - Appends the report to the parent ticket, increments `reported_by_count`, dynamically elevates the parent incident's severity, and writes an immutable audit record.
 4. **Agent 4: Priority & Severity Agent:**
    - Calculates a dynamic `severity_score` (0–100) combining base issue hazard, detected risks, urgency, and citizen crowdsource count.
@@ -124,11 +126,21 @@ When a citizen submits a grievance via the portal or API, the request executes t
 ---
 
 ### 3. Frontend Control Center & Citizen Portal
+
+- **Clean Aesthetic & Theme Switcher:**
+  - One-click toggle between **Light Mode** and **Dark Mode**, with persistent state in `localStorage`.
+  - Automatically switches map tile styles: CartoDB Positron (Light) and CartoDB Dark Matter (Dark).
 - **View 1: Citizen Reporting Portal:**
   - Modern card design with auto-expanding textarea, example prompt chips, auto-detect GPS, and image dropzone.
   - **Live Multi-Agent Stepper:** Visually steps through all 6 agents during submission with instant feedback.
-  - **Citizen Tracking Hub:** Real-time SLA countdown timer (hours, minutes, seconds), interactive progress stepper, and immutable audit timeline.
-- **View 2: Smart City Operations Dashboard (Control Center):**
+- **View 2: Grievance Redressal Tracking & Transparency Hub:**
+  - **Direct Ticket Binding:** When you submit a complaint, your ticket ID is immediately bound and tracked.
+  - **"Your Submissions" Pill Bar:** Displays your recently submitted tickets for quick one-click status inspections.
+  - **Original Description Visibility:** Displays the exact text description reported by the citizen.
+  - **100m Clustered Reports Breakdown:** For merged tickets, view all crowdsourced citizen submissions, individual distances in meters, and timestamps.
+  - **Live Countdown Ticker:** Real-time SLA countdown timer (hours, minutes, seconds) with color-coded breach warnings.
+  - **Audit Timeline:** Complete immutable event log showing AI triage, routing, and field operations.
+- **View 3: Smart City Operations Dashboard (Control Center):**
   - **Top KPI Bar:** Total Active Incidents, SLA Breaches, Average Turnaround Speed, City Efficiency Index (0–100).
   - **Interactive Leaflet Map:**
     - Custom color-coded pins: Green (Low), Yellow (Med), Orange (High), Red (Critical).
@@ -149,7 +161,7 @@ When a citizen submits a grievance via the portal or API, the request executes t
 |---|---|
 | **Backend** | Python 3.11+, FastAPI (async), Pydantic v2, SQLAlchemy, SQLite, APScheduler, LangChain Core/Groq/OpenAI/Anthropic |
 | **Frontend** | React 19, Vite, TypeScript, Tailwind CSS, Lucide-React, React-Leaflet, Leaflet, Recharts, Axios |
-| **Map Layer** | Leaflet with CARTO Dark Tiles, Dynamic SVG DivIcons, Heatmap Density Buffers |
+| **Map Layer** | Leaflet with CartoDB Positron (Light) & Dark Matter (Dark) Tiles, Dynamic SVG DivIcons, Heatmap Density Buffers |
 
 ---
 
@@ -198,7 +210,7 @@ Open your browser to: **[http://localhost:5173](http://localhost:5173)**
 | Method | Endpoint | Description |
 |---|---|---|
 | `POST` | `/api/complaints/submit` | Ingests citizen grievance, runs 6-agent pipeline, clusters duplicates, returns ticket |
-| `GET` | `/api/complaints/track/{ticket_number}` | Returns status, SLA countdown, assigned department, and audit logs |
+| `GET` | `/api/complaints/track/{ticket_number}` | Returns status, SLA countdown, assigned department, duplicate reports, and audit logs |
 | `GET` | `/api/admin/incidents` | Lists incidents; filterable by `department`, `ward_id`, `severity`, `status`, `sla_risk`, `search` |
 | `PATCH` | `/api/admin/incidents/{id}/status` | Updates workflow status (`IN_PROGRESS`, `RESOLVED`, `ESCALATED`) and records notes |
 | `GET` | `/api/admin/analytics/overview` | Computes KPIs, turnaround times, department speeds, and ward leaderboard |
@@ -230,3 +242,8 @@ curl -X POST http://127.0.0.1:8000/api/complaints/submit \
   }'
 ```
 *Result: Automatically detected within 100m! Merges into the existing ticket, increments `reported_by_count` to 2, bumps severity score, and records audit trail.*
+
+---
+
+## 📄 License
+This project is open-source under the MIT License.
