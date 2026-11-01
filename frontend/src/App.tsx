@@ -9,27 +9,28 @@ import { IncidentTable } from './components/dashboard/IncidentTable';
 import { ResolutionModal } from './components/dashboard/ResolutionModal';
 import { GovernanceCharts } from './components/dashboard/GovernanceCharts';
 import { api } from './services/api';
-import { 
+import type { 
   Incident, 
   ComplaintSubmissionResponse, 
   AnalyticsOverview, 
   HeatmapPoint 
 } from './types';
 import { 
-  Sparkles, 
   CheckCircle2, 
-  AlertTriangle, 
-  ShieldCheck, 
-  Flame, 
   Search,
-  RotateCw,
-  TrendingUp,
-  Building2,
-  Clock
+  ShieldCheck,
+  Zap,
+  Users
 } from 'lucide-react';
 
 export const App: React.FC = () => {
-  const [currentTab, setCurrentTab] = useState<'citizen' | 'dashboard' | 'track'>('dashboard');
+  // Theme state: defaults to 'light', remembers choice in localStorage
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('civicpulse-theme');
+    return (saved === 'dark' || saved === 'light') ? saved : 'light';
+  });
+
+  const [currentTab, setCurrentTab] = useState<'citizen' | 'dashboard' | 'track'>('citizen');
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsOverview | null>(null);
   const [heatmapPoints, setHeatmapPoints] = useState<HeatmapPoint[]>([]);
@@ -49,9 +50,24 @@ export const App: React.FC = () => {
   const [isReseeding, setIsReseeding] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Synchronize theme with HTML document class
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('civicpulse-theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 4000);
+    setTimeout(() => setToastMessage(null), 3500);
   };
 
   // Fetch Dashboard & Incidents Data
@@ -94,7 +110,7 @@ export const App: React.FC = () => {
       const res = await api.submitComplaint(data);
       setSubmissionResponse(res);
       showToast(res.is_duplicate 
-        ? `Duplicate matched! Clustered into #${res.parent_ticket}` 
+        ? `Duplicate report matched and clustered into #${res.parent_ticket}` 
         : `Grievance registered as #${res.ticket_number}`);
       loadData();
     } catch (err: any) {
@@ -106,7 +122,7 @@ export const App: React.FC = () => {
 
   // Handle Status Update from Resolution Modal
   const handleStatusUpdated = (updated: Incident) => {
-    showToast(`Ticket #${updated.ticket_number} updated to ${updated.status}`);
+    showToast(`Ticket #${updated.ticket_number} marked ${updated.status}`);
     setIncidents(prev => prev.map(i => i.id === updated.id ? updated : i));
     loadData();
   };
@@ -125,7 +141,6 @@ export const App: React.FC = () => {
     }
   };
 
-  // Open Tracking View
   const handleOpenTrack = (ticketNumber: string) => {
     setTrackTicketNumber(ticketNumber);
     setCurrentTab('track');
@@ -135,11 +150,11 @@ export const App: React.FC = () => {
   const breachedCount = analytics?.sla_breached_count || incidents.filter(i => i.is_sla_breached).length;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-sky-500 selection:text-white">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
       
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-20 right-4 z-50 flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-sky-900/90 text-sky-100 border border-sky-700 shadow-2xl backdrop-blur-md animate-bounce text-xs font-semibold">
+        <div className="fixed top-20 right-4 z-50 flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-slate-900 text-white dark:bg-sky-950 dark:text-sky-100 dark:border dark:border-sky-800 shadow-lg text-xs font-semibold animate-in fade-in slide-in-from-top-2">
           <CheckCircle2 className="w-4 h-4 text-sky-400" />
           <span>{toastMessage}</span>
         </div>
@@ -153,40 +168,41 @@ export const App: React.FC = () => {
         breachedCount={breachedCount}
         onReseed={handleReseed}
         isReseeding={isReseeding}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
-      {/* Main View Container */}
+      {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         
         {/* VIEW 1: CITIZEN REPORTING PORTAL */}
         {currentTab === 'citizen' && (
           <div className="space-y-6">
             
-            {/* Citizen Portal Banner */}
-            <div className="bg-gradient-to-r from-sky-950/80 via-slate-900 to-slate-900 border border-sky-900/50 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            {/* Clean Hero Header */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors">
               <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-sky-400 flex items-center space-x-1.5 mb-1">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Next-Generation Citizen Grievance Redressal</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">
+                  Civic Grievance Redressal
                 </span>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight font-['Outfit']">
-                  CivicPulse Ingestion AI
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white font-['Outfit'] mt-0.5">
+                  Report an Issue & Track Resolution
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-400 max-w-2xl mt-1">
-                  Report infrastructure damages, sanitary overflows, open manholes, or street hazards. Our autonomous 6-agent engine dedupes against existing incidents within 100m and enforces strict SLA targets.
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xl mt-1">
+                  Report potholes, overflowing garbage, broken water mains, or power faults. Multi-agent AI verifies location, eliminates duplicate tickets within 100m, and locks resolution deadlines.
                 </p>
               </div>
 
               <button
                 onClick={() => setCurrentTab('track')}
-                className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 text-xs font-semibold transition active:scale-95 shrink-0"
+                className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-semibold transition active:scale-95 shrink-0 self-start sm:self-auto"
               >
-                <Search className="w-4 h-4 text-sky-400" />
+                <Search className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
                 <span>Track Existing Ticket</span>
               </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
               
               {/* Left Column: Reporting Form (7 cols) */}
               <div className="lg:col-span-7">
@@ -196,7 +212,7 @@ export const App: React.FC = () => {
                 />
               </div>
 
-              {/* Right Column: Submission Stepper / Live Results (5 cols) */}
+              {/* Right Column: Submission Stepper / Explainer (5 cols) */}
               <div className="lg:col-span-5 space-y-4">
                 {(isSubmitting || submissionResponse) ? (
                   <SubmissionStepper
@@ -206,40 +222,60 @@ export const App: React.FC = () => {
                     onReset={() => setSubmissionResponse(null)}
                   />
                 ) : (
-                  <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2.5 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                        <ShieldCheck className="w-5 h-5" />
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4 transition-colors">
+                    <div className="flex items-center space-x-2.5 pb-3 border-b border-slate-100 dark:border-slate-800">
+                      <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400">
+                        <ShieldCheck className="w-4 h-4" />
                       </div>
                       <div>
-                        <h3 className="text-base font-bold text-white font-['Outfit']">
-                          Autonomous Municipal Pipeline
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                          How CivicPulse Redressal Works
                         </h3>
-                        <p className="text-xs text-slate-400">
-                          How CivicPulse handles every citizen report:
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Autonomous multi-agent lifecycle
                         </p>
                       </div>
                     </div>
 
                     <div className="space-y-3 text-xs">
-                      <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-                        <strong className="text-sky-400 block mb-0.5">1. Semantic Understanding</strong>
-                        <span className="text-slate-400">LangChain structured extraction of issue types, hazards, and traffic/health danger risks.</span>
+                      <div className="flex items-start space-x-2.5">
+                        <span className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">
+                          1
+                        </span>
+                        <div>
+                          <strong className="text-slate-900 dark:text-slate-100 block">Semantic Understanding</strong>
+                          <span className="text-slate-500 dark:text-slate-400 text-[11px]">AI automatically extracts the hazard category, risks (traffic, public health), and urgency.</span>
+                        </div>
                       </div>
 
-                      <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-                        <strong className="text-sky-400 block mb-0.5">2. 100m Proximity Clustering</strong>
-                        <span className="text-slate-400">Haversine spatial check against active tickets. Duplicate reports automatically reinforce parent priority without spamming field squads.</span>
+                      <div className="flex items-start space-x-2.5">
+                        <span className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">
+                          2
+                        </span>
+                        <div>
+                          <strong className="text-slate-900 dark:text-slate-100 block">100m Proximity Clustering</strong>
+                          <span className="text-slate-500 dark:text-slate-400 text-[11px]">Haversine spatial check merges duplicate citizen complaints into parent incidents without creating spam tickets.</span>
+                        </div>
                       </div>
 
-                      <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-                        <strong className="text-sky-400 block mb-0.5">3. Dynamic Severity & SLA Assignment</strong>
-                        <span className="text-slate-400">Composite 0-100 scoring locking 6h (Critical), 24h (High), 48h (Medium), or 72h (Low) response deadlines.</span>
+                      <div className="flex items-start space-x-2.5">
+                        <span className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">
+                          3
+                        </span>
+                        <div>
+                          <strong className="text-slate-900 dark:text-slate-100 block">Department Dispatch & SLA</strong>
+                          <span className="text-slate-500 dark:text-slate-400 text-[11px]">Routes to PWD, Sanitation, Water Board, or Power Board with a locked 6h to 72h SLA timer.</span>
+                        </div>
                       </div>
 
-                      <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-                        <strong className="text-sky-400 block mb-0.5">4. Autonomous 60s Escalation</strong>
-                        <span className="text-slate-400">APScheduler daemon continuously monitors breached SLAs, elevating overdue tickets to District Supervisors and Commissioners.</span>
+                      <div className="flex items-start space-x-2.5">
+                        <span className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">
+                          4
+                        </span>
+                        <div>
+                          <strong className="text-slate-900 dark:text-slate-100 block">60s Escalation Daemon</strong>
+                          <span className="text-slate-500 dark:text-slate-400 text-[11px]">Background scheduler escalates overdue tickets to District Supervisors and City Commissioners.</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -252,7 +288,7 @@ export const App: React.FC = () => {
 
         {/* VIEW 2: SMART CITY OPERATIONS DASHBOARD (Control Center) */}
         {currentTab === 'dashboard' && (
-          <div className="space-y-6">
+          <div className="space-y-5">
             
             {/* Top KPI Bar */}
             <KpiBar analytics={analytics} loading={loading} />
@@ -262,6 +298,7 @@ export const App: React.FC = () => {
               incidents={incidents}
               heatmapPoints={heatmapPoints}
               onSelectIncident={(inc) => setInspectIncident(inc)}
+              theme={theme}
             />
 
             {/* Incident Management Queue Table */}
@@ -272,14 +309,18 @@ export const App: React.FC = () => {
             />
 
             {/* Governance & Transparency Charts (Recharts) */}
-            <GovernanceCharts analytics={analytics} loading={loading} />
+            <GovernanceCharts 
+              analytics={analytics} 
+              loading={loading} 
+              theme={theme}
+            />
 
           </div>
         )}
 
         {/* VIEW 3: CITIZEN TICKET TRACKING */}
         {currentTab === 'track' && (
-          <div className="max-w-4xl mx-auto py-2">
+          <div className="max-w-3xl mx-auto py-2">
             <TrackingModal
               initialTicket={trackTicketNumber || (incidents.length > 0 ? incidents[0].ticket_number : 'CP-2026-1001')}
             />
@@ -298,13 +339,13 @@ export const App: React.FC = () => {
       )}
 
       {/* Footer */}
-      <footer className="border-t border-slate-800/80 bg-slate-950/80 py-4 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-3.5 text-center text-xs text-slate-500 dark:text-slate-400 transition-colors">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-1.5">
           <span>
             CivicPulse AI &bull; Smart City Grievance & Civic Issue Resolution System (PS-10)
           </span>
-          <span className="text-slate-400">
-            Powered by FastAPI &bull; APScheduler &bull; React Vite &bull; Tailwind CSS &bull; Leaflet &bull; Recharts
+          <span className="text-[11px]">
+            FastAPI &bull; React 19 Vite &bull; Tailwind CSS &bull; Leaflet &bull; Recharts
           </span>
         </div>
       </footer>

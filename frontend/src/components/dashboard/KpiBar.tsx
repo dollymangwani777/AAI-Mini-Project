@@ -2,13 +2,11 @@ import React from 'react';
 import { 
   AlertOctagon, 
   Clock, 
-  CheckCircle2, 
   Zap, 
   TrendingUp, 
-  ShieldAlert,
   Flame
 } from 'lucide-react';
-import { AnalyticsOverview } from '../../types';
+import type { AnalyticsOverview } from '../../types';
 
 interface KpiBarProps {
   analytics: AnalyticsOverview | null;
@@ -18,115 +16,114 @@ interface KpiBarProps {
 export const KpiBar: React.FC<KpiBarProps> = ({ analytics, loading }) => {
   if (loading || !analytics) {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-pulse">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 animate-pulse">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-28 rounded-2xl bg-slate-900 border border-slate-800" />
+          <div key={i} className="h-24 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800" />
         ))}
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
       
       {/* KPI 1: Active Incidents */}
-      <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-2xl p-4 sm:p-5 relative overflow-hidden group hover:border-slate-700 transition">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs transition-colors">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             Active Incidents
           </span>
-          <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
-            <Flame className="w-4 h-4" />
+          <div className="p-1.5 rounded-lg bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400">
+            <Flame className="w-3.5 h-3.5" />
           </div>
         </div>
-        <div className="mt-3 flex items-baseline space-x-2">
-          <span className="text-3xl font-black font-['Outfit'] text-white">
+        <div className="mt-2 flex items-baseline space-x-2">
+          <span className="text-2xl font-bold font-['Outfit'] text-slate-900 dark:text-white">
             {analytics.active_incidents}
           </span>
           <span className="text-xs text-slate-400">
             / {analytics.total_incidents} total
           </span>
         </div>
-        <div className="mt-2 flex items-center space-x-1.5 text-[11px] text-emerald-400">
-          <TrendingUp className="w-3.5 h-3.5" />
+        <div className="mt-1 flex items-center space-x-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+          <TrendingUp className="w-3 h-3" />
           <span>{analytics.resolution_rate}% Resolved Overall</span>
         </div>
       </div>
 
-      {/* KPI 2: SLA Breaches & Escalations */}
-      <div className={`backdrop-blur-md border rounded-2xl p-4 sm:p-5 relative overflow-hidden transition ${
+      {/* KPI 2: SLA Breaches */}
+      <div className={`border rounded-2xl p-4 shadow-xs transition-colors ${
         analytics.sla_breached_count > 0 
-          ? 'bg-rose-950/20 border-rose-800/80 shadow-lg shadow-rose-950/30' 
-          : 'bg-slate-900/80 border-slate-800'
+          ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900' 
+          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
       }`}>
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-rose-300">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300">
             SLA Breaches
           </span>
-          <div className={`p-2 rounded-xl ${
+          <div className={`p-1.5 rounded-lg ${
             analytics.sla_breached_count > 0 
-              ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse' 
-              : 'bg-slate-800 text-slate-400'
+              ? 'bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 animate-pulse' 
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
           }`}>
-            <AlertOctagon className="w-4 h-4" />
+            <AlertOctagon className="w-3.5 h-3.5" />
           </div>
         </div>
-        <div className="mt-3 flex items-baseline space-x-2">
-          <span className="text-3xl font-black font-['Outfit'] text-rose-400">
+        <div className="mt-2 flex items-baseline space-x-2">
+          <span className="text-2xl font-bold font-['Outfit'] text-rose-600 dark:text-rose-400">
             {analytics.sla_breached_count}
           </span>
           {analytics.escalated_count > 0 && (
-            <span className="text-xs font-bold text-rose-300 bg-rose-900/60 px-2 py-0.5 rounded-full border border-rose-700">
+            <span className="text-[10px] font-bold text-rose-700 dark:text-rose-300 bg-rose-100 dark:bg-rose-900/60 px-2 py-0.5 rounded-full">
               {analytics.escalated_count} Escalated
             </span>
           )}
         </div>
-        <div className="mt-2 text-[11px] text-rose-400/80 font-medium">
-          Autonomous Escalation active every 60s
+        <div className="mt-1 text-[11px] text-rose-600/80 dark:text-rose-400/80 font-medium">
+          Automated supervisor escalation
         </div>
       </div>
 
-      {/* KPI 3: Average Resolution Time */}
-      <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-2xl p-4 sm:p-5 relative overflow-hidden group hover:border-slate-700 transition">
+      {/* KPI 3: Average Resolution Speed */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs transition-colors">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Avg Resolution Speed
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Resolution Speed
           </span>
-          <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-            <Clock className="w-4 h-4" />
+          <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400">
+            <Clock className="w-3.5 h-3.5" />
           </div>
         </div>
-        <div className="mt-3 flex items-baseline space-x-2">
-          <span className="text-3xl font-black font-['Outfit'] text-white">
+        <div className="mt-2 flex items-baseline space-x-1.5">
+          <span className="text-2xl font-bold font-['Outfit'] text-slate-900 dark:text-white">
             {analytics.avg_resolution_time_hours}
           </span>
-          <span className="text-xs font-semibold text-slate-400">hours</span>
+          <span className="text-xs text-slate-500">hours</span>
         </div>
-        <div className="mt-2 text-[11px] text-slate-400">
-          Target city SLA baseline: 24h
+        <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+          Target city SLA: 24h
         </div>
       </div>
 
-      {/* KPI 4: City Efficiency Score */}
-      <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-2xl p-4 sm:p-5 relative overflow-hidden group hover:border-slate-700 transition">
+      {/* KPI 4: City Efficiency Index */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs transition-colors">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            City Efficiency Index
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Efficiency Index
           </span>
-          <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-            <Zap className="w-4 h-4" />
+          <div className="p-1.5 rounded-lg bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400">
+            <Zap className="w-3.5 h-3.5" />
           </div>
         </div>
-        <div className="mt-3 flex items-baseline space-x-2">
-          <span className="text-3xl font-black font-['Outfit'] text-cyan-300">
+        <div className="mt-2 flex items-baseline space-x-1.5">
+          <span className="text-2xl font-bold font-['Outfit'] text-sky-600 dark:text-sky-400">
             {analytics.city_efficiency_score}
           </span>
-          <span className="text-xs font-semibold text-slate-400">/ 100</span>
+          <span className="text-xs text-slate-400">/ 100</span>
         </div>
-        {/* Progress bar */}
-        <div className="mt-2 w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+        <div className="mt-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
           <div 
-            className="bg-gradient-to-r from-sky-500 to-cyan-400 h-1.5 rounded-full"
+            className="bg-sky-600 dark:bg-sky-500 h-1.5 rounded-full"
             style={{ width: `${analytics.city_efficiency_score}%` }}
           />
         </div>

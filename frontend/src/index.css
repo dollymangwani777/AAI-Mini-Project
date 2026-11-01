@@ -6,63 +6,69 @@
 
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100 antialiased font-sans selection:bg-sky-500 selection:text-white min-h-screen;
+    @apply bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 antialiased font-sans selection:bg-sky-500 selection:text-white min-h-screen transition-colors duration-200;
   }
 }
 
 /* Custom scrollbars */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
   background: #334155;
-  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
 
-/* Leaflet dark theme map enhancements */
+/* Leaflet clean map styling */
 .leaflet-container {
   width: 100%;
   height: 100%;
   border-radius: 0.75rem;
+  background-color: #f1f5f9 !important;
+}
+
+.dark .leaflet-container {
   background-color: #0b1120 !important;
 }
 
-.leaflet-tile {
-  filter: brightness(0.7) invert(1) contrast(3) hue-rotate(200deg) saturate(0.35);
+.leaflet-popup-content-wrapper {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-radius: 0.75rem !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
+  padding: 0.25rem !important;
 }
 
-.leaflet-popup-content-wrapper {
-  background: #1e293b !important;
+.dark .leaflet-popup-content-wrapper {
+  background: #0f172a !important;
   color: #f8fafc !important;
-  border-radius: 0.75rem !important;
   border: 1px solid #334155 !important;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
 }
 
 .leaflet-popup-tip {
-  background: #1e293b !important;
+  background: #ffffff !important;
 }
 
-/* Glowing animations */
-@keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
-  }
-  50% {
-    box-shadow: 0 0 30px rgba(239, 68, 68, 0.9);
-  }
-}
-
-.glow-escalated {
-  animation: pulse-glow 1.5s infinite;
+.dark .leaflet-popup-tip {
+  background: #0f172a !important;
 }
