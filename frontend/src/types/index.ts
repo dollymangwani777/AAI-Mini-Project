@@ -59,10 +59,20 @@ export interface ComplaintSubmissionResponse {
   pipeline_trace: AgentPipelineStep[];
 }
 
+export interface DuplicateReport {
+  id: number;
+  ticket_number: string;
+  description: string;
+  raw_location?: string | null;
+  distance_meters: number;
+  created_at: string;
+}
+
 export interface TrackResponse {
   incident: Incident;
   logs: IncidentLog[];
   duplicate_count: number;
+  duplicate_reports?: DuplicateReport[];
 }
 
 export interface HeatmapPoint {

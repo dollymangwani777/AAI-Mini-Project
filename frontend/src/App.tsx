@@ -109,6 +109,29 @@ export const App: React.FC = () => {
     try {
       const res = await api.submitComplaint(data);
       setSubmissionResponse(res);
+
+      const submittedTicket = res.ticket_number || res.parent_ticket || '';
+      if (submittedTicket) {
+        setTrackTicketNumber(submittedTicket);
+        try {
+          localStorage.setItem('civicpulse_last_ticket', submittedTicket);
+          const raw = localStorage.getItem('civicpulse_my_tickets');
+          const existing = raw ? JSON.parse(raw) : [];
+          const updated = [
+            {
+              ticket: submittedTicket,
+              title: res.incident?.title || data.description.slice(0, 40),
+              status: res.incident?.status || 'SUBMITTED',
+              timestamp: new Date().toISOString()
+            },
+            ...existing.filter((item: any) => item.ticket !== submittedTicket)
+          ].slice(0, 8);
+          localStorage.setItem('civicpulse_my_tickets', JSON.stringify(updated));
+        } catch (e) {
+          console.error("Failed to save ticket to localStorage:", e);
+        }
+      }
+
       showToast(res.is_duplicate 
         ? `Duplicate report matched and clustered into #${res.parent_ticket}` 
         : `Grievance registered as #${res.ticket_number}`);
@@ -322,7 +345,7 @@ export const App: React.FC = () => {
         {currentTab === 'track' && (
           <div className="max-w-3xl mx-auto py-2">
             <TrackingModal
-              initialTicket={trackTicketNumber || (incidents.length > 0 ? incidents[0].ticket_number : 'CP-2026-1001')}
+              initialTicket={trackTicketNumber || localStorage.getItem('civicpulse_last_ticket') || ''}
             />
           </div>
         )}

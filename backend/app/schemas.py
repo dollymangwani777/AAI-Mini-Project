@@ -68,10 +68,21 @@ class ComplaintSubmissionResponse(BaseModel):
     incident: IncidentResponse
     pipeline_trace: List[AgentPipelineStep]
 
+class DuplicateReportResponse(BaseModel):
+    id: int
+    ticket_number: str
+    description: str
+    raw_location: Optional[str] = None
+    distance_meters: float
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
 class TrackResponse(BaseModel):
     incident: IncidentResponse
     logs: List[IncidentLogResponse]
     duplicate_count: int
+    duplicate_reports: List[DuplicateReportResponse] = []
 
 class StatusUpdateRequest(BaseModel):
     status: str = Field(..., description="IN_PROGRESS, RESOLVED, or ESCALATED")

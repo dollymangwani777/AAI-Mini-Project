@@ -2,12 +2,13 @@ import json
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models import Incident, IncidentLog
+from ..models import Incident, IncidentLog, DuplicateReport
 from ..schemas import (
     ComplaintSubmissionRequest,
     ComplaintSubmissionResponse,
     TrackResponse,
-    IncidentLogResponse
+    IncidentLogResponse,
+    DuplicateReportResponse
 )
 from ..agents.pipeline import execute_ingestion_pipeline, build_incident_response
 
@@ -48,6 +49,7 @@ def track_complaint(
         )
 
     logs = db.query(IncidentLog).filter(IncidentLog.incident_id == inc.id).order_by(IncidentLog.timestamp.desc()).all()
+    dup_reports = db.query(DuplicateReport).filter(DuplicateReport.parent_incident_id == inc.id).order_by(DuplicateReport.created_at.desc()).all()
     
     log_responses = []
     for l in logs:
@@ -67,8 +69,21 @@ def track_complaint(
             metadata=meta
         ))
 
+    duplicate_report_responses = [
+        DuplicateReportResponse(
+            id=d.id,
+            ticket_number=d.ticket_number,
+            description=d.description,
+            raw_location=d.raw_location,
+            distance_meters=d.distance_meters,
+            created_at=d.created_at
+        )
+        for d in dup_reports
+    ]
+
     return TrackResponse(
         incident=build_incident_response(inc),
         logs=log_responses,
-        duplicate_count=inc.reported_by_count - 1
+        duplicate_count=inc.reported_by_count - 1,
+        duplicate_reports=duplicate_report_responses
     )

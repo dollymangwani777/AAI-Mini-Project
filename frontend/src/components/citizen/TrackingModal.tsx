@@ -8,7 +8,9 @@ import {
   FileText, 
   Layers, 
   X, 
-  Activity
+  Activity,
+  History,
+  Info
 } from 'lucide-react';
 import { api } from '../../services/api';
 import type { TrackResponse } from '../../types';
@@ -28,6 +30,7 @@ export const TrackingModal: React.FC<TrackingModalProps> = ({
   const [trackData, setTrackData] = useState<TrackResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [recentTickets, setRecentTickets] = useState<Array<{ ticket: string; title: string; status?: string }>>([]);
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; isBreached: boolean }>({
     hours: 0,
     minutes: 0,
@@ -35,15 +38,28 @@ export const TrackingModal: React.FC<TrackingModalProps> = ({
     isBreached: false
   });
 
+  // Load user's recent submissions
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('civicpulse_my_tickets');
+      if (raw) {
+        setRecentTickets(JSON.parse(raw));
+      }
+    } catch (e) {
+      console.error("Failed to parse recent tickets:", e);
+    }
+  }, []);
+
   const fetchTrackDetails = async (ticket: string) => {
-    if (!ticket.trim()) return;
+    const trimmed = ticket.trim().toUpperCase();
+    if (!trimmed) return;
     setLoading(true);
     setError(null);
     try {
-      const data = await api.trackComplaint(ticket);
+      const data = await api.trackComplaint(trimmed);
       setTrackData(data);
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Grievance ticket not found. Please verify the ticket ID.");
+      setError(err.response?.data?.detail || `Grievance ticket '${trimmed}' not found. Please verify the ticket ID.`);
       setTrackData(null);
     } finally {
       setLoading(false);
@@ -51,9 +67,9 @@ export const TrackingModal: React.FC<TrackingModalProps> = ({
   };
 
   useEffect(() => {
-    if (initialTicket) {
-      setTicketInput(initialTicket);
-      fetchTrackDetails(initialTicket);
+    if (initialTicket && initialTicket.trim()) {
+      setTicketInput(initialTicket.trim());
+      fetchTrackDetails(initialTicket.trim());
     }
   }, [initialTicket]);
 
@@ -125,7 +141,7 @@ export const TrackingModal: React.FC<TrackingModalProps> = ({
       </div>
 
       {/* Ticket Search Bar */}
-      <form onSubmit={handleSearch} className="mb-5">
+      <form onSubmit={handleSearch} className="mb-3">
         <div className="flex items-center space-x-2">
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -149,11 +165,56 @@ export const TrackingModal: React.FC<TrackingModalProps> = ({
         </div>
       </form>
 
+      {/* Recent Submissions Quick Bar */}
+      {recentTickets.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 mb-5 text-xs">
+          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+            <History className="w-3 h-3" />
+            Your Submissions:
+          </span>
+          {recentTickets.map((item) => (
+            <button
+              key={item.ticket}
+              type="button"
+              onClick={() => {
+                setTicketInput(item.ticket);
+                fetchTrackDetails(item.ticket);
+              }}
+              className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition flex items-center gap-1.5 ${
+                ticketInput === item.ticket && trackData
+                  ? 'bg-sky-600 text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              <span>{item.ticket}</span>
+              <span className="font-sans font-normal text-[10px] text-slate-500 dark:text-slate-400 max-w-[120px] truncate">
+                {item.title}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Error Message */}
       {error && (
         <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs flex items-center space-x-2 mb-5">
           <AlertTriangle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
+        </div>
+      )}
+
+      {/* Empty / Prompt State */}
+      {!trackData && !loading && !error && (
+        <div className="p-8 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-950/40 space-y-3">
+          <div className="w-12 h-12 mx-auto rounded-full bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400 flex items-center justify-center">
+            <Search className="w-6 h-6" />
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-slate-900 dark:text-white">Track Your Specific Civic Grievance</h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mt-1">
+              Enter your ticket ID above to inspect real-time SLA countdowns, municipal department assignments, duplicate cluster status, and immutable audit logs.
+            </p>
+          </div>
         </div>
       )}
 
@@ -163,7 +224,7 @@ export const TrackingModal: React.FC<TrackingModalProps> = ({
           
           {/* Top Banner: Status & Live SLA Countdown */}
           <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div>
+            <div className="flex-1">
               <div className="flex items-center space-x-2">
                 <span className="text-lg font-black font-mono text-slate-900 dark:text-white">
                   {trackData.incident.ticket_number}
@@ -189,6 +250,16 @@ export const TrackingModal: React.FC<TrackingModalProps> = ({
                 <MapPin className="w-3 h-3 text-slate-400" />
                 <span>{trackData.incident.raw_location}</span>
               </p>
+
+              {/* Exact Reported Description */}
+              <div className="mt-2.5 p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+                <span className="font-semibold block text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">
+                  Reported Issue Description:
+                </span>
+                <p className="text-slate-700 dark:text-slate-300 text-xs leading-relaxed">
+                  {trackData.incident.raw_description}
+                </p>
+              </div>
             </div>
 
             {/* SLA Timer Clock */}
@@ -266,13 +337,34 @@ export const TrackingModal: React.FC<TrackingModalProps> = ({
             </div>
           </div>
 
-          {/* Duplicate Cluster Note */}
-          {trackData.incident.reported_by_count > 1 && (
-            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 flex items-center space-x-2 text-xs">
-              <Layers className="w-3.5 h-3.5 shrink-0" />
-              <span>
-                <strong>Reinforced Report:</strong> {trackData.incident.reported_by_count} independent citizen reports have clustered at this location, dynamically elevating priority.
-              </span>
+          {/* Duplicate Clustered Reports Banner & Submissions */}
+          {trackData.duplicate_reports && trackData.duplicate_reports.length > 0 && (
+            <div className="p-4 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2 text-amber-900 dark:text-amber-200">
+                  <Layers className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <span className="text-xs font-bold">
+                    Clustered Citizen Reports ({trackData.duplicate_reports.length} Merged Within 100m)
+                  </span>
+                </div>
+                <span className="text-[10px] font-semibold text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-2 py-0.5 rounded-full">
+                  100m Spatial Clustering
+                </span>
+              </div>
+              <p className="text-[11px] text-amber-800 dark:text-amber-300">
+                To prevent ticket spam, the multi-agent engine clusters multiple citizen grievances within 100 meters of the same hazard. Each report elevates the priority (+8 severity):
+              </p>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {trackData.duplicate_reports.map((dup) => (
+                  <div key={dup.id} className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/50 text-xs">
+                    <p className="font-semibold text-slate-800 dark:text-slate-200">{dup.description}</p>
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1">
+                      <span>Location: {dup.raw_location || 'Nearby'} ({dup.distance_meters}m away)</span>
+                      <span>{new Date(dup.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' })}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
